@@ -25,6 +25,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState('signin');
   const [form, setForm] = useState({ email: '', password: '', code: '' });
+  const [authErrors, setAuthErrors] = useState({ email: '', password: '', code: '', form: '' });
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -49,6 +50,41 @@ function App() {
     activeRef.current = active;
     if (active) loadMessages(active.conversationId);
   }, [active]);
+
+  useEffect(() => {
+    setAuthErrors({ email: '', password: '', code: '', form: '' });
+  }, [authMode]);
+
+  function updateAuthField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setAuthErrors((current) => ({ ...current, [field]: '', form: '' }));
+  }
+
+  function mapAuthError(error, mode) {
+    const name = error?.name || '';
+    const message = error?.message || 'Unable to authenticate. Please try again.';
+
+    if (mode === 'confirm') {
+      if (name === 'CodeMismatchException' || name === 'ExpiredCodeException') {
+        return { field: 'code', message };
+      }
+    }
+
+    switch (name) {
+      case 'UserNotFoundException':
+      case 'UsernameExistsException':
+      case 'InvalidParameterException':
+        return { field: 'email', message };
+      case 'InvalidPasswordException':
+      case 'NotAuthorizedException':
+        return { field: 'password', message };
+      case 'TooManyRequestsException':
+      case 'LimitExceededException':
+        return { field: 'form', message };
+      default:
+        return { field: '', message };
+    }
+  }
 
   async function token() {
     const session = await fetchAuthSession();
@@ -95,18 +131,28 @@ function App() {
 
   async function submitAuth(event) {
     event.preventDefault();
-    if (authMode === 'signup') {
-      await signUp({ username: form.email, password: form.password, options: { userAttributes: { email: form.email } } });
-      setAuthMode('confirm');
-      return;
+    setAuthErrors({ email: '', password: '', code: '', form: '' });
+    try {
+      if (authMode === 'signup') {
+        await signUp({ username: form.email, password: form.password, options: { userAttributes: { email: form.email } } });
+        setAuthMode('confirm');
+        return;
+      }
+      if (authMode === 'confirm') {
+        await confirmSignUp({ username: form.email, confirmationCode: form.code });
+        setAuthMode('signin');
+        return;
+      }
+      await signIn({ username: form.email, password: form.password });
+      setUser(await getCurrentUser());
+    } catch (error) {
+      const mapped = mapAuthError(error, authMode);
+      if (mapped.field) {
+        setAuthErrors((current) => ({ ...current, [mapped.field]: mapped.message }));
+      } else {
+        setAuthErrors((current) => ({ ...current, form: mapped.message }));
+      }
     }
-    if (authMode === 'confirm') {
-      await confirmSignUp({ username: form.email, confirmationCode: form.code });
-      setAuthMode('signin');
-      return;
-    }
-    await signIn({ username: form.email, password: form.password });
-    setUser(await getCurrentUser());
   }
 
   async function createChat(type) {
@@ -134,10 +180,22 @@ function App() {
       <main className="auth">
         <form onSubmit={submitAuth}>
           <h1>Serverless Chat</h1>
-          <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          {authMode === 'confirm' && <input placeholder="Confirmation code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />}
-          {authMode !== 'confirm' && <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}
+          <input placeholder="Email" value={form.email} onChange={(e) => updateAuthField('email', e.target.value)} />
+          {authErrors.email && <span className="field-error">{authErrors.email}</span>}
+          {authMode === 'confirm' && (
+            <>
+              <input placeholder="Confirmation code" value={form.code} onChange={(e) => updateAuthField('code', e.target.value)} />
+              {authErrors.code && <span className="field-error">{authErrors.code}</span>}
+            </>
+          )}
+          {authMode !== 'confirm' && (
+            <>
+              <input placeholder="Password" type="password" value={form.password} onChange={(e) => updateAuthField('password', e.target.value)} />
+              {authErrors.password && <span className="field-error">{authErrors.password}</span>}
+            </>
+          )}
           <button>{authMode === 'signup' ? 'Sign up' : authMode === 'confirm' ? 'Confirm' : 'Sign in'}</button>
+          {authErrors.form && <div className="form-error">{authErrors.form}</div>}
           <button type="button" onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}>
             {authMode === 'signin' ? 'Create account' : 'Use existing account'}
           </button>

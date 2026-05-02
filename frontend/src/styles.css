@@ -45,6 +45,17 @@ input {
   padding: 24px;
 }
 
+.field-error {
+  color: #b42318;
+  font-size: 12px;
+  margin-top: -6px;
+}
+
+.form-error {
+  color: #b42318;
+  font-size: 13px;
+}
+
 .app {
   min-height: 100vh;
   display: grid;
