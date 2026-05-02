@@ -1,0 +1,119 @@
+name: dev
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  TF_WORKING_DIR: infra/envs/dev
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Backend install
+        working-directory: backend
+        run: npm ci
+
+      - name: Backend lint and test
+        working-directory: backend
+        run: |
+          npm run lint
+          npm test
+          npm audit --audit-level=high
+          npm run package
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint and build
+        working-directory: frontend
+        run: |
+          npm run lint
+          npm run build
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -var-file=dev.tfvars
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build backend artifacts
+        working-directory: backend
+        run: |
+          npm ci
+          npm run package
+
+      - name: Terraform apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform init
+          terraform apply -auto-approve -var-file=dev.tfvars
+
+      - name: Export Terraform outputs
+        id: tf
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          echo "frontend_bucket=$(terraform output -raw frontend_bucket)" >> "$GITHUB_OUTPUT"
+          echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+          echo "rest_api_url=$(terraform output -raw rest_api_url)" >> "$GITHUB_OUTPUT"
+          echo "websocket_url=$(terraform output -raw websocket_url)" >> "$GITHUB_OUTPUT"
+          echo "user_pool_id=$(terraform output -raw cognito_user_pool_id)" >> "$GITHUB_OUTPUT"
+          echo "client_id=$(terraform output -raw cognito_client_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_AWS_REGION: ${{ env.AWS_REGION }}
+          VITE_REST_API_URL: ${{ steps.tf.outputs.rest_api_url }}
+          VITE_WEBSOCKET_URL: ${{ steps.tf.outputs.websocket_url }}
+          VITE_COGNITO_USER_POOL_ID: ${{ steps.tf.outputs.user_pool_id }}
+          VITE_COGNITO_CLIENT_ID: ${{ steps.tf.outputs.client_id }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload frontend
+        run: aws s3 sync frontend/dist "s3://${{ steps.tf.outputs.frontend_bucket }}" --delete
+
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "${{ steps.tf.outputs.cloudfront_distribution_id }}" --paths "/*"

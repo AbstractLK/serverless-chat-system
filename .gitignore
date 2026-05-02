@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+*.tfplan
+*.zip
+.env
+.env.local
+coverage/
+.DS_Store

@@ -1,0 +1,22 @@
+{
+  "name": "serverless-chat-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "node --check src/handlers/authorizer.js && node --check src/handlers/connect.js && node --check src/handlers/disconnect.js && node --check src/handlers/rest.js && node --check src/handlers/websocket.js && node --check src/handlers/worker.js",
+    "test": "node --test",
+    "package": "node scripts/package.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.812.0",
+    "@aws-sdk/client-dynamodb": "^3.812.0",
+    "@aws-sdk/client-sqs": "^3.812.0",
+    "@aws-sdk/lib-dynamodb": "^3.812.0",
+    "aws-jwt-verify": "^5.1.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1"
+  }
+}

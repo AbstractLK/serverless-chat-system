@@ -1,0 +1,9 @@
+project_name         = "serverless-chat"
+environment          = "dev"
+aws_region           = "ap-southeast-1"
+lambda_memory_size   = 256
+lambda_timeout       = 15
+max_message_length   = 2000
+frontend_domain_name = ""
+certificate_arn      = ""
+github_repository    = "https://github.com/AbstractLK/serverless-chat-system.git"

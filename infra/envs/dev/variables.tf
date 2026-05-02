@@ -1,0 +1,9 @@
+variable "project_name" { type = string }
+variable "environment" { type = string }
+variable "aws_region" { type = string }
+variable "lambda_memory_size" { type = number }
+variable "lambda_timeout" { type = number }
+variable "max_message_length" { type = number }
+variable "frontend_domain_name" { type = string }
+variable "certificate_arn" { type = string }
+variable "github_repository" { type = string }
