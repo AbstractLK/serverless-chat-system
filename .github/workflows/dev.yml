@@ -48,6 +48,13 @@ jobs:
       - name: Terraform fmt
         run: terraform fmt -check -recursive infra
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+
       - name: Terraform init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
