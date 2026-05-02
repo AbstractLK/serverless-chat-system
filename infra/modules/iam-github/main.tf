@@ -36,6 +36,59 @@ resource "aws_iam_role_policy_attachment" "power_user" {
   policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
 }
 
+resource "aws_iam_role_policy" "terraform_iam_management" {
+  name = "${var.name_prefix}-terraform-iam-management"
+  role = aws_iam_role.github.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole",
+          "iam:CreateRole",
+          "iam:UpdateRole",
+          "iam:DeleteRole",
+          "iam:TagRole",
+          "iam:UntagRole",
+          "iam:GetRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:ListAttachedRolePolicies",
+          "iam:PassRole"
+        ]
+        Resource = [
+          "arn:aws:iam::*:role/${var.name_prefix}-*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetOpenIDConnectProvider",
+          "iam:CreateOpenIDConnectProvider",
+          "iam:UpdateOpenIDConnectProviderThumbprint",
+          "iam:DeleteOpenIDConnectProvider",
+          "iam:TagOpenIDConnectProvider",
+          "iam:UntagOpenIDConnectProvider"
+        ]
+        Resource = "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:GetPolicy",
+          "iam:ListPolicies"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 output "role_arn" {
   value = aws_iam_role.github.arn
 }
