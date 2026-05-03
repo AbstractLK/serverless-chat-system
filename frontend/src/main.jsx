@@ -24,8 +24,8 @@ Amplify.configure({
 function App() {
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState('signin');
-  const [form, setForm] = useState({ email: '', password: '', code: '' });
-  const [authErrors, setAuthErrors] = useState({ email: '', password: '', code: '', form: '' });
+  const [form, setForm] = useState({ email: '', password: '', code: '', name: '' });
+  const [authErrors, setAuthErrors] = useState({ email: '', password: '', code: '', name: '', form: '' });
   const [conversations, setConversations] = useState([]);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -52,7 +52,7 @@ function App() {
   }, [active]);
 
   useEffect(() => {
-    setAuthErrors({ email: '', password: '', code: '', form: '' });
+    setAuthErrors({ email: '', password: '', code: '', name: '', form: '' });
   }, [authMode]);
 
   function updateAuthField(field, value) {
@@ -131,10 +131,14 @@ function App() {
 
   async function submitAuth(event) {
     event.preventDefault();
-    setAuthErrors({ email: '', password: '', code: '', form: '' });
+    setAuthErrors({ email: '', password: '', code: '', name: '', form: '' });
     try {
       if (authMode === 'signup') {
-        await signUp({ username: form.email, password: form.password, options: { userAttributes: { email: form.email } } });
+        if (!form.name.trim()) {
+          setAuthErrors((current) => ({ ...current, name: 'Full name is required.' }));
+          return;
+        }
+        await signUp({ username: form.email, password: form.password, options: { userAttributes: { email: form.email, name: form.name } } });
         setAuthMode('confirm');
         return;
       }
@@ -180,6 +184,12 @@ function App() {
       <main className="auth">
         <form onSubmit={submitAuth}>
           <h1>Serverless Chat</h1>
+          {authMode === 'signup' && (
+            <>
+              <input placeholder="Full name" value={form.name} onChange={(e) => updateAuthField('name', e.target.value)} required />
+              {authErrors.name && <span className="field-error">{authErrors.name}</span>}
+            </>
+          )}
           <input placeholder="Email" value={form.email} onChange={(e) => updateAuthField('email', e.target.value)} />
           {authErrors.email && <span className="field-error">{authErrors.email}</span>}
           {authMode === 'confirm' && (
