@@ -76,6 +76,9 @@ function App() {
   const [searchError, setSearchError] = useState('');
   const [searching, setSearching] = useState(false);
 
+  // Group chat builder
+  const [groupMembers, setGroupMembers] = useState([]);
+
   useEffect(() => {
     getCurrentUser().then(setUser).catch(() => setUser(null));
   }, []);
@@ -322,9 +325,37 @@ function App() {
       await loadConversations();
     } catch (error) {
       const msg = error.message || '';
-      // If conversation already exists, still reload
       setSearchError(msg.includes('already') ? 'Conversation already exists.' : 'Could not create conversation.');
       await loadConversations();
+    }
+  }
+
+  function addToGroup(user) {
+    if (groupMembers.some((m) => m.userId === user.userId)) return;
+    setGroupMembers((prev) => [...prev, user]);
+    setSearchResult(null);
+    setSearchEmail('');
+  }
+
+  function removeFromGroup(userId) {
+    setGroupMembers((prev) => prev.filter((m) => m.userId !== userId));
+  }
+
+  async function createGroupChat() {
+    if (groupMembers.length < 1) return;
+    try {
+      const memberIds = groupMembers.map((m) => m.userId);
+      await api('/conversations', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'group', memberIds })
+      });
+      setGroupMembers([]);
+      setSearchEmail('');
+      setSearchResult(null);
+      setSearchError('');
+      await loadConversations();
+    } catch (error) {
+      setSearchError(error.message || 'Could not create group.');
     }
   }
 
@@ -450,8 +481,25 @@ function App() {
                 <div className="name">{searchResult.name}</div>
                 <div className="email">{searchResult.email}</div>
               </div>
-              <button className="btn-start-chat" onClick={() => startDirectChat(searchResult.userId)}>
-                Start Chat
+              <div className="search-result-actions">
+                <button className="btn-start-chat" onClick={() => startDirectChat(searchResult.userId)}>Direct</button>
+                <button className="btn-add-group" onClick={() => addToGroup(searchResult)}>+ Group</button>
+              </div>
+            </div>
+          )}
+
+          {groupMembers.length > 0 && (
+            <div className="group-builder">
+              <div className="group-members-list">
+                {groupMembers.map((member) => (
+                  <span className="group-chip" key={member.userId}>
+                    {member.name}
+                    <button className="chip-remove" onClick={() => removeFromGroup(member.userId)}>×</button>
+                  </span>
+                ))}
+              </div>
+              <button className="btn-create-group" onClick={createGroupChat}>
+                Create Group ({groupMembers.length + 1})
               </button>
             </div>
           )}
