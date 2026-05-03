@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.812.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1041.0",
     "@aws-sdk/client-dynamodb": "^3.812.0",
     "@aws-sdk/client-sqs": "^3.812.0",
     "@aws-sdk/lib-dynamodb": "^3.812.0",
     "aws-jwt-verify": "^5.1.0",
-    "uuid": "^11.1.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "archiver": "^7.0.1"

@@ -65,6 +65,11 @@ resource "aws_iam_role_policy" "app" {
         Effect   = "Allow"
         Action   = "execute-api:ManageConnections"
         Resource = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*/*/POST/@connections/*"
+      },
+      {
+        Effect = "Allow"
+        Action = ["cognito-idp:ListUsers", "cognito-idp:AdminGetUser"]
+        Resource = "arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/${var.cognito_user_pool_id}"
       }
     ]
   })

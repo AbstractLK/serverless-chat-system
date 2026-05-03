@@ -7,6 +7,7 @@ import {
 } from '../lib/db.js';
 import { getUserId, json, parseJson } from '../lib/http.js';
 import { assertString, badRequest } from '../lib/validation.js';
+import { getUserById, getUsersByIds, searchUserByEmail } from '../lib/cognito.js';
 
 export async function handler(event) {
   try {
@@ -37,6 +38,30 @@ export async function handler(event) {
       const conversationId = assertString(event.pathParameters?.conversationId, 'conversationId');
       await requireMember(conversationId, userId);
       return json(200, await listMessages(conversationId, event.queryStringParameters?.cursor));
+    }
+
+    if (method === 'GET' && routeKey === 'GET /users/search') {
+      const email = event.queryStringParameters?.email;
+      if (!email) throw badRequest('email query parameter is required');
+      const user = await searchUserByEmail(email);
+      if (!user) return json(404, { message: 'User not found' });
+      return json(200, { user });
+    }
+
+    if (method === 'GET' && routeKey === 'GET /users/{userId}') {
+      const targetUserId = assertString(event.pathParameters?.userId, 'userId');
+      const user = await getUserById(targetUserId);
+      if (!user) return json(404, { message: 'User not found' });
+      return json(200, { user });
+    }
+
+    if (method === 'POST' && routeKey === 'POST /users/batch') {
+      const body = parseJson(event);
+      const userIds = body.userIds;
+      if (!Array.isArray(userIds) || userIds.length === 0) throw badRequest('userIds array is required');
+      if (userIds.length > 25) throw badRequest('Maximum 25 user IDs per request');
+      const users = await getUsersByIds(userIds);
+      return json(200, { users });
     }
 
     return json(404, { message: 'Not found' });

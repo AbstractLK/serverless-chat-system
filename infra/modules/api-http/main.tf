@@ -41,7 +41,10 @@ resource "aws_apigatewayv2_route" "routes" {
   for_each = toset([
     "GET /conversations",
     "POST /conversations",
-    "GET /conversations/{conversationId}/messages"
+    "GET /conversations/{conversationId}/messages",
+    "GET /users/search",
+    "GET /users/{userId}",
+    "POST /users/batch"
   ])
 
   api_id             = aws_apigatewayv2_api.this.id
