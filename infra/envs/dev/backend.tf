@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "serverless-chat-terraform-d1417c5c-state"
+    bucket         = "serverless-chat-terraform-5afbd7f6-state"
     key            = "dev/terraform.tfstate"
     region         = "ap-southeast-1"
     dynamodb_table = "serverless-chat-terraform-locks"
