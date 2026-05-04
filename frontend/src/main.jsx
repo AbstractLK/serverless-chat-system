@@ -238,7 +238,7 @@ function App() {
 
   async function loadMessages(conversationId) {
     const data = await api(`/conversations/${conversationId}/messages`);
-    const msgs = (data.items || []).reverse();
+    const msgs = (data.items || []).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
     setMessages(msgs);
 
     // Resolve sender names
