@@ -527,6 +527,21 @@ A pre-provisioned dashboard (`{name_prefix}-chat`) displays:
 - Group chat is intentionally minimal — all members have the fixed role `member`.
 - The frontend is a **single-file React application** (`main.jsx`) for simplicity.
 
+You can destroy all resources by running terraform destroy from the dev environment directory:
+
+```
+cd infra/envs/dev
+terraform destroy -var-file=dev.tfvars
+```
+
+Terraform remote state backend (S3 bucket + DynamoDB lock table)
+If you want to destroy that too, run:
+
+```
+cd infra/bootstrap
+terraform destroy -var="project_name=serverless-chat" -var="aws_region=ap-southeast-1"
+```
+
 ---
 
 ## 📄 License
